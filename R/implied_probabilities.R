@@ -81,11 +81,11 @@
 #'converted_odds$probabilities
 #'
 #' @export
-implied_probabilities <- function(odds, method='basic', normalize=TRUE, grossmargin = 0,
+implied_probabilities <- function(odds, method='basic', lay = NULL, normalize=TRUE, grossmargin = 0,
                                   shin_method = 'js'){
 
   stopifnot(length(method) == 1,
-            tolower(method) %in% c('basic', 'shin', 'bb', 'wpo', 'or', 'power', 'additive'),
+            tolower(method) %in% c('basic', 'shin', 'bb', 'wpo', 'or', 'power', 'additive', 'exc'),
             all(odds >= 1),
             grossmargin >= 0,
             shin_method %in% c('js', 'uniroot'),
@@ -122,6 +122,24 @@ implied_probabilities <- function(odds, method='basic', normalize=TRUE, grossmar
   if (method == 'basic'){
     out$probabilities <- inverted_odds / inverted_odds_sum
 
+  } else if (method == 'exc'){
+    
+    if (!is.matrix(lay)){
+      
+      if ('data.frame' %in% class(lay)){
+        lay <- as.matrix(lay)
+      } else {
+        lay <- matrix(lay, nrow=1,
+                      dimnames = list(NULL, names(lay)))
+      }
+    }
+    
+    inverted_lay <- 1/ lay
+    gap <- inverted_odds - inverted_lay
+    scaled_gap <- gap/sum(gap)
+    proportionate <- (inverted_odds_sum-1)*scaled_gap
+    out$probabilities <- inverted_odds-proportionate
+    
   } else if (method == 'shin'){
 
     zvalues <- numeric(n_odds) # The proportion of insider trading.
